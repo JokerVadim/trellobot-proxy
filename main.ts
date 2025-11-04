@@ -1,16 +1,18 @@
-// main.ts - СУПЕР ПРОСТОЙ ВЕБХУК
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 serve(async (req) => {
-  console.log("📨 Request received:", req.method);
-  
-  // ВАЖНО: сразу отвечаем OK для Telegram
-  const response = new Response(JSON.stringify({ status: "OK" }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+  console.log("📨 Request received:", req.method, req.url);
 
-  // Асинхронно обрабатываем POST запросы
+  // ВАЖНО: Telegram проверяет вебхук GET запросом
+  if (req.method === "GET") {
+    console.log("✅ GET request - webhook check");
+    return new Response(JSON.stringify({ status: "OK", method: "GET" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Обрабатываем POST запросы от Telegram
   if (req.method === "POST") {
     try {
       const body = await req.json();
@@ -45,9 +47,18 @@ serve(async (req) => {
     } catch (error) {
       console.log("❌ Error processing request:", error);
     }
+    
+    return new Response(JSON.stringify({ status: "OK" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
-  return response;
+  // Для всех остальных методов
+  return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
+    status: 405,
+    headers: { "Content-Type": "application/json" },
+  });
 });
 
 console.log("🚀 Deno server running...");
